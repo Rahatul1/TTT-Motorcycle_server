@@ -53,7 +53,6 @@ async function run() {
       const query = { _id: ObjectId(id) };
       const products = await productCollection.findOne(query);
       if (products) {
-        // console.log(products.quantity)
         const filter = { _id: ObjectId(id) };
         const option = { upsert: true };
         const updateInfo = {
@@ -67,6 +66,35 @@ async function run() {
         res.send({ msg: "Susccess dalivary" })
       }
     })
+
+    // quantity quantity
+    app.put('/ProductsDetail/:id', async (req, res) => {
+      const quantity = req.body.quantity;
+      const id = req.params.id;
+      const query = { _id: ObjectId(id) };
+      const products = await productCollection.findOne(query);
+      if (products) {
+        const filter = { _id: ObjectId(id) };
+        const option = { upsert: true };
+        const updateInfo = {
+          $set: {
+            quantity: parseInt(products.quantity) + parseInt(quantity)           
+          }
+        };
+        const result = await productCollection.updateOne(filter,  updateInfo, option);
+        console.log(result);
+        res.send({ msg: "Quantity Add" })
+      } 
+    })
+    //dellet
+    app.delete('/products/:id',async (req, res) => {
+      //
+      const id = req.params.id;
+      const query = { _id: ObjectId(id) };
+      const result = await productCollection.deleteOne(query);
+      res.send(result);
+    })
+    //
 
   } finally {
     //
