@@ -47,7 +47,26 @@ async function run() {
       const results = await productCollection.insertOne(newProduts);
       res.send(results);
     })
-
+    //update
+    app.put("/produts/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: ObjectId(id) };
+      const products = await productCollection.findOne(query);
+      if (products) {
+        // console.log(products.quantity)
+        const filter = { _id: ObjectId(id) };
+        const option = { upsert: true };
+        const updateInfo = {
+          $set: {
+            quantity: products.quantity - 1,
+            sold: parseInt(products.sold) + 1
+          }
+        };
+        const result = await productCollection.updateOne(filter,  updateInfo, option);
+        console.log(result);
+        res.send({ msg: "Susccess dalivary" })
+      }
+    })
 
   } finally {
     //
