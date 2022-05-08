@@ -1,6 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const app = express();
+let jwt = require('jsonwebtoken');
 require("dotenv").config();
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const port = process.env.PORT || 5000;
@@ -8,6 +9,24 @@ const port = process.env.PORT || 5000;
 // middleware
 app.use(cors());
 app.use(express.json());
+
+//
+function validate(req, res, next) {
+  const authheader = req.headers.authorization;
+  if (!authheader) {
+    return res.status(401).send({ status: 'validate faild' })
+  }
+  const token = authheader.split(' ')[1];
+  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
+    if (err) {
+      return res.status(403).send({ message: 'Not validate'})
+    }
+    console.log('decoded', decoded)
+    req.decoded = decoded;
+  })
+
+  next();
+}
 
 //------------------//
 
@@ -19,14 +38,25 @@ const client = new MongoClient(uri, {
   useUnifiedTopology: true,
   serverApi: ServerApiVersion.v1,
 });
+
 async function run() {
   try {
     await client.connect();
     const productCollection = client
       .db("warehouseManagement")
       .collection("produts");
+    
+    // 
+    app.post('/login', async (req, res) => {
+      const user = req.body;
+      const accessToken = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
+        expiresIn: "15d"
+      });
+    res.send({accessToken});
+    })
+    
 
-    //--get---//
+    //-product-api---//
     app.get("/produts", async (req, res) => {
       const query = {};
       const cursor = productCollection.find(query);
@@ -96,14 +126,19 @@ async function run() {
     })
   
     // myitem
-    app.get('/myItem', async (req, res) => {
+    app.get('/myItem', validate, async (req, res) => {
+      const decodedEmail = req.decoded.email;
       const email = req.query.email;
-      const query = {email: email};
+      if (email === decodedEmail) {
+        const query = {email: email};
       const cursor = productCollection.find(query);
       const myItem = await cursor.toArray();
       res.send(myItem);
+      } else {
+        res.status(404).send({message: 'Not Found'})
+     }
     })
-
+    //
   } finally {
     //
   }
